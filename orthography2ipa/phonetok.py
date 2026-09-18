@@ -270,7 +270,15 @@ def _expand_arabic_gemination(text: str) -> str:
     text = _AR_GEM_HARAKAT_FIRST.sub(r"\1\1\2", text)
     text = _AR_GEM_BARE.sub(r"\1\1", text)
     return text
+# ── Kabyle (kab) pre-tokenization ──
+# Validations: fell-i=[fəlːi], Tett=[t͡s], kem-yufi=k
+_KAB_CLITIC = re.compile(r"(?i)\b([a-zɣṛḍṭṣḥɛčǧʷ']+)-([iakmstnwy]+)\b")
+_KAB_TETT = re.compile(r"(?i)\btett")
 
+def _normalize_kabyle(text: str) -> str:
+    text = _KAB_CLITIC.sub(r"\1\2", text) # fell-i -> felli, kem-yufi -> kemyufi
+    text = _KAB_TETT.sub("tets", text) # tettaruḍ -> tetsaruḍ -> [t͡s]
+    return text
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Locale-aware casing
@@ -1687,6 +1695,10 @@ class PhonetokTokenizer:
             # Persian — byte-identical.
             if _AR_SHADDA in self._grapheme_ipa:
                 text = _expand_arabic_gemination(text)
+
+        # Kabyle-specific (clean)
+        if self.spec.code == "kab":
+            text = _normalize_kabyle(text)
 
         tokens: List[Token] = []
         n = len(text)
