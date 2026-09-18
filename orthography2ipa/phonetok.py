@@ -276,8 +276,9 @@ _KAB_CLITIC = re.compile(r"(?i)\b([a-zɣṛḍṭṣḥɛčǧʷ']+)-([iakmstnwy]
 _KAB_TETT = re.compile(r"(?i)\btett")
 
 def _normalize_kabyle(text: str) -> str:
-    text = _KAB_CLITIC.sub(r"\1\2", text) # fell-i -> felli, kem-yufi -> kemyufi
-    text = _KAB_TETT.sub("tets", text) # tettaruḍ -> tetsaruḍ -> [t͡s]
+    text = _KAB_CLITIC.sub(r"\1\2", text) # isem-ik -> isemik
+    text = re.sub(r"(?i)ik\b", "iç", text) # isemik -> isemiç (iç = i + symbole IPA ç)
+    text = _KAB_TETT.sub("tets", text)
     return text
 
 # ═══════════════════════════════════════════════════════════════════════════
