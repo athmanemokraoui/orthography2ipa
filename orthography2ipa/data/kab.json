@@ -508,8 +508,8 @@
     "d"
    ],
    "surface": "d",
-   "word_initial": true,
-   "notes": "Spirantization of /d/ is blocked in absolute word-initial position (e.g., d-ittun 'they came' → [dittun], not *[ðittun]). Validated by native-speaker judgment (MOKRAOUI 2026). Note: the prefix d- (ventive) is a separate phonological word but is written attached to the verb."
+   "preceded_by": "word_boundary",
+   "notes": "Validated native (MOKRAOUI 2026): Spirantization of /d/ is blocked in absolute word-initial position (e.g., d-ittun → [dittun], not *[ðittun]). The prefix d- (ventive) is a separate phonological word but is written attached."
   },
   {
    "id": "KAB_BLOCK_SPIRANT_K_AFTER_CONSONANT",
@@ -580,7 +580,7 @@
     "jː",
     "wː"
    ],
-   "notes": "Validated native (MOKRAOUI 2026): kra=ç, kečč=ç, kcem=ç, kteb=ç (spirantized initially), tilkit=k (l+k), amkan=k (m+k), k-ufiɣ=k (prefix keeps k), kullec=k (lexical), kem/kent=k positional. Spirantization /k/→[ç] only post-vocalically or word-initially. Sonorant cases corroborated by Bedar et al. 2022: /ç/ occlusivizes to [k] after r,l,n,m."
+   "notes": "Validated native (MOKRAOUI 2026): kra=ç, kečč=ç, kcem=ç, kteb=ç (spirantized initially), tilkit=k (l+k), amkan=k (m+k), k-ufiɣ=k (prefix keeps k), kullec=k (lexical), kem/kent=k (lexical). Spirantization /k/→[ç] only post-vocalically or word-initially. Sonorant cases corroborated by Bedar et al. 2022: /ç/ occlusivizes to [k] after r,l,n,m."
   },
   {
    "id": "KAB_BLOCK_SPIRANT_G_AFTER_CONSONANT",
