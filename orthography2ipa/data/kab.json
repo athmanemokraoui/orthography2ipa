@@ -60,9 +60,6 @@
   "k": [
    "k"
   ],
-  "ç": [
-   "ç"
-  ],  
   "l": [
    "l"
   ],
@@ -425,7 +422,7 @@
    "preceded_by_phoneme": [
     "m"
    ],
-   "notes": "Spirantization of /b/ is blocked after a homorganic nasal /m/ (e.g., zembil 'basket' → [zəmbil], not *[zəmβil]). Kossmann & Stroomer (1997) p.469. Corroborated for Chemini Kabyle by Bedar, Quellec & Tifrit (2022): /nβ/ → [mb] and /mβ/ → [mb]. Native validation Sétif-Lafayette 2026-09-18: zembil pattern holds."
+   "notes": "Spirantization of /b/ is blocked after a homorganic nasal /m/ (e.g., zembil 'basket' → [zəmbil], not *[zəmβil]). Kossmann & Stroomer (1997) p.469. Corroborated for Chemini Kabyle by Bedar, Quellec & Tifrit (2022): /nβ/ → [mb] and /mβ/ → [mb]. Native validation (MOKRAOUI 2026): zembil pattern holds."
   },
   {
    "id": "KAB_BLOCK_SPIRANT_D_AFTER_N",
@@ -492,7 +489,7 @@
    "preceded_by_phoneme": [
     "m"
    ],
-   "notes": "Validated native Sétif-Lafayette 2026-09-18: tasemmumt = [θasəmmumt] θ initial + t final after m, not [θasəmmumθ]. Chemini pattern per Bedar et al. 2022: /mθ/ → [mt]. Boghni/Makouda keep [mθ] – not followed here."
+   "notes": "Validated native (MOKRAOUI 2026): tasemmumt = [θasəmmumt] θ initial + t final after m, not [θasəmmumθ]. Chemini pattern per Bedar et al. 2022: /mθ/ → [mt]. Boghni/Makouda keep [mθ] – not followed here."
   },
   {
    "id": "KAB_BLOCK_SPIRANT_D_AFTER_M",
@@ -503,7 +500,16 @@
    "preceded_by_phoneme": [
     "m"
    ],
-   "notes": "Validated native Sétif-Lafayette 2026-09-18: tamda = [θamda] θ initial + d after m, not [θamða]. Chemini pattern per Bedar et al. 2022: /mð/ → [md]."
+   "notes": "Validated native (MOKRAOUI 2026): tamda = [θamda] θ initial + d after m, not [θamða]. Chemini pattern per Bedar et al. 2022: /mð/ → [md]."
+  },
+  {
+   "id": "KAB_BLOCK_SPIRANT_D_WORD_INITIAL",
+   "phonemes": [
+    "d"
+   ],
+   "surface": "d",
+   "word_initial": true,
+   "notes": "Spirantization of /d/ is blocked in absolute word-initial position (e.g., d-ittun 'they came' → [dittun], not *[ðittun]). Validated by native-speaker judgment (MOKRAOUI 2026). Note: the prefix d- (ventive) is a separate phonological word but is written attached to the verb."
   },
   {
    "id": "KAB_BLOCK_SPIRANT_K_AFTER_CONSONANT",
@@ -574,7 +580,7 @@
     "jː",
     "wː"
    ],
-   "notes": "Validated native Sétif-Lafayette 2026-09-18: kra=ç, kečč=ç, kcem=ç, kteb=ç (spirantized initially), tilkit=k (l+k), amkan=k (m+k), k-ufiɣ=k (prefix keeps k), kullec=k (lexical), kem/kent=ç~k positional. Spirantization /k/→[ç] only post-vocalically or word-initially. Sonorant cases corroborated by Bedar et al. 2022: /ç/ occlusivizes to [k] after r,l,n,m."
+   "notes": "Validated native (MOKRAOUI 2026): kra=ç, kečč=ç, kcem=ç, kteb=ç (spirantized initially), tilkit=k (l+k), amkan=k (m+k), k-ufiɣ=k (prefix keeps k), kullec=k (lexical), kem/kent=k positional. Spirantization /k/→[ç] only post-vocalically or word-initially. Sonorant cases corroborated by Bedar et al. 2022: /ç/ occlusivizes to [k] after r,l,n,m."
   },
   {
    "id": "KAB_BLOCK_SPIRANT_G_AFTER_CONSONANT",
@@ -644,7 +650,7 @@
     "jː",
     "wː"
    ],
-   "notes": "Validated native Sétif-Lafayette 2026-09-18: argaz=[arɡaz] g after r, not [arʝaz]. /ɡ/→[ʝ] post-vocalically, word-initially, and after /m/ per Bedar et al. 2022: /mʝ/→[mʝ] before ə,i,a. Sonorant cases after r,l,n occlusivize; m does not."
+   "notes": "Validated native (MOKRAOUI 2026): argaz=[arɡaz] g after r, not [arʝaz]. /ɡ/→[ʝ] post-vocalically, word-initially, and after /m/ per Bedar et al. 2022: /mʝ/→[mʝ] before ə,i,a. Sonorant cases after r,l,n occlusivize; m does not."
   },
   {
    "id": "KAB_SPIRANT_K",
@@ -652,7 +658,7 @@
     "k"
    ],
    "surface": "ç",
-   "notes": "Spirantization /k/→[ç] (Kossmann & Stroomer 1997 p.469; Karaoui et al. 2024 list [ç] in Kabyle inventory). Validated native Sétif: kra=ç, kečč=ç, kcem=ç, kteb=ç. Blocked after any consonant (KAB_BLOCK_SPIRANT_K_AFTER_CONSONANT). Geminate kk=/kː/ stays stop."
+   "notes": "Spirantization /k/→[ç] (Kossmann & Stroomer 1997 p.469; Karaoui et al. 2024 list [ç] in Kabyle inventory). Validated native (MOKRAOUI 2026): kra=ç, kečč=ç, kcem=ç, kteb=ç. Blocked after any consonant (KAB_BLOCK_SPIRANT_K_AFTER_CONSONANT). Geminate kk=/kː/ stays stop."
   },
   {
    "id": "KAB_SPIRANT_B",
@@ -668,7 +674,7 @@
     "d"
    ],
    "surface": "ð",
-   "notes": "Spirantization /d/→[ð]. Kossmann & Stroomer 1997. adrar→[aðrar]. Geminate dd=/dː/ stays stop. Validated native Sétif: tamda=[θamda] shows blocking after m."
+   "notes": "Spirantization /d/→[ð]. Kossmann & Stroomer 1997. adrar→[aðrar]. Geminate dd=/dː/ stays stop. Validated native (MOKRAOUI 2026): tamda=[θamda] shows blocking after m."
   },
   {
    "id": "KAB_SPIRANT_T",
@@ -676,7 +682,7 @@
     "t"
    ],
    "surface": "θ",
-   "notes": "Spirantization /t/→[θ]. Kossmann & Stroomer 1997. Validated native Sétif: tamda=[θamda] θ initial, tasemmumt=[θasəmmumt] θ initial + t final."
+   "notes": "Spirantization /t/→[θ]. Kossmann & Stroomer 1997. Validated native (MOKRAOUI 2026): tamda=[θamda] θ initial, tasemmumt=[θasəmmumt] θ initial + t final."
   },
   {
    "id": "KAB_SPIRANT_G",
@@ -684,7 +690,7 @@
     "ɡ"
    ],
    "surface": "ʝ",
-   "notes": "Spirantization /ɡ/→[ʝ] post-vocalically, word-initially, and after /m/. Validated native Sétif: argaz=[arɡaz] shows occlusivization after r per Bedar et al. 2022. Geminate gg=/ɡː/ stays stop."
+   "notes": "Spirantization /ɡ/→[ʝ] post-vocalically, word-initially, and after /m/. Validated native (MOKRAOUI 2026): argaz=[arɡaz] shows occlusivization after r per Bedar et al. 2022. Geminate gg=/ɡː/ stays stop."
   },
   {
    "id": "KAB_SPIRANT_DH_EMPH",
@@ -700,7 +706,7 @@
     "ɣ"
    ],
    "surface": "ʁ",
-   "notes": "Validated native Sétif-Lafayette 2026-09-18: tamɣart=ʁ, yemɣur=ʁ. /ɣ/ realized as uvular [ʁ] in all positions."
+   "notes": "Validated native (MOKRAOUI 2026): tamɣart=ʁ, yemɣur=ʁ. /ɣ/ realized as uvular [ʁ] in all positions."
   },
   {
    "id": "KAB_GH_GEM_UVULAR_REALIZATION",
@@ -806,7 +812,7 @@
     "χː",
     "ɣː"
    ],
-   "notes": "Nasal assimilation /n/→[ŋ] before dorsal. Bedar et al. 2022: /nç,nʝ/→[ŋk,ŋɡ]. Validated native Sétif: amkan=k with [ŋk] or [mk] assimilation, not palatal."
+   "notes": "Nasal assimilation /n/→[ŋ] before dorsal. Bedar et al. 2022: /nç,nʝ/→[ŋk,ŋɡ]. Validated native (MOKRAOUI 2026): amkan=k with [ŋk] or [mk] assimilation, not palatal."
   },
   {
    "id": "KAB_N_LABIAL_ASSIM",
@@ -825,7 +831,12 @@
    "notes": "Nasal assimilation /n/→[m] before labial."
   }
  ],
- "notes": "Kabyle (Taqbaylit), Northern Berber. INPUT: Latin INALCO. Native validations Sétif-Lafayette 2026-09-18 for k/g/t/d/n: kra=ç, kečč=ç, kcem=ç, kteb=ç, kem=ç~k positional, kent=ç~k positional, k-ufiɣ=k, kullec=k, tilkit=k, fell-ak=ç, amkan=k, argaz=[arɡaz], tamɣart=ʁ, yemɣur=ʁ, tamda=[θamda], tasemmumt=[θasəmmumt]. Palatal [ɲ] removed - not attested intra-morphemically (afenjal, yenjer = [nʒ] not [ɲ]). Spirantization blocked after any consonant for /k/ in Chemini model (Bedar et al. 2022).",
+ "word_exceptions": {
+  "kem": "kem",
+  "kent": "kent",
+  "kullec": "kulːəʃ"
+ },
+ "notes": "Kabyle (Taqbaylit), Northern Berber. INPUT: Latin INALCO. Native validations (MOKRAOUI 2026) for k/g/t/d/n: kra=ç, kečč=ç, kcem=ç, kteb=ç, kem=k, kent=k, k-ufiɣ=k, kullec=k, tilkit=k, fell-ak=ç, amkan=k, argaz=[arɡaz], tamɣart=ʁ, yemɣur=ʁ, tamda=[θamda], tasemmumt=[θasəmmumt]. Palatal [ɲ] removed - not attested intra-morphemically (afenjal, yenjer = [nʒ] not [ɲ]). Spirantization blocked after any consonant for /k/ in Chemini model (Bedar et al. 2022).",
  "parent": "ber-x-kabyle-atlas",
  "ancestors": [
   {
@@ -948,7 +959,7 @@
    "pages": null,
    "notes": "Schwa epenthesis."
   },
- {
+  {
    "id": "mokraoui2026_native_verification",
    "author": "MOKRAOUI, Athmane",
    "year": 2026,
@@ -956,13 +967,13 @@
    "publisher": null,
    "url": null,
    "pages": null,
-   "notes": "Primary speaker judgments 2026-09-18: kra=ç, kečč=ç, kcem=ç, kteb=ç, kem=ç~k positional, kent=ç~k positional, k-ufiɣ=k, kullec=k, tilkit=k, fell-ak=ç, amkan=k, argaz=[arɡaz], tamɣart=ʁ, yemɣur=ʁ, tamda=[θamda], tasemmumt=[θasəmmumt], fell-i=[fəlːi], Tett=[t͡s], Ur kem-yufi=k. Validates post-sonorant occlusivization for /k,g,t,d/ and uvular realization of /ɣ/."
- }
+   "notes": "Primary speaker judgments 2026-09-18: kra=ç, kečč=ç, kcem=ç, kteb=ç, kem=k, kent=k, k-ufiɣ=k, kullec=k, tilkit=k, fell-ak=ç, amkan=k, argaz=[arɡaz], tamɣart=ʁ, yemɣur=ʁ, tamda=[θamda], tasemmumt=[θasəmmumt], fell-i=[fəlːi], Tett=[t͡s], Ur kem-yufi=k. Validates post-sonorant occlusivization for /k,g,t,d/ and uvular realization of /ɣ/."
+  }
  ],
  "wikipedia": [
   "https://en.wikipedia.org/wiki/Kabyle_language",
   "https://en.wikipedia.org/wiki/Berber_languages",
-  "https://kab.wikipedia.org/wiki/Tutlayt_taqbaylit",
+  "https://kab.wikipedia.org/wiki/Tutut_taqbaylit",
   "https://kab.wikipedia.org/wiki/Tutlayin_timazi%C9%A3in",
   "https://ar.wikipedia.org/wiki/%D8%A7%D9%84%D9%84%D9%87%D8%AC%D8%A9_%D8%A7%D9%84%D9%82%D8%A8%D8%A7%D8%A6%D9%84%D9%8A%D8%A9",
   "https://fr.wikipedia.org/wiki/Kabyle",
