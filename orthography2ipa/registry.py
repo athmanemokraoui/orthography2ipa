@@ -121,6 +121,11 @@ _ALIASES: Dict[str, str] = {
     "ajp": "ar-JO",           # South Levantine Arabic (Jordanian/Palestinian)
     "afb": "ar-x-gulf",       # Gulf Arabic
     "acw": "ar-SA-x-hejaz",   # Hijazi Arabic
+    # ``abv`` (Baharna) resolved to a zero-grapheme placeholder while the modelled
+    # spec describes the variety with the Gulf table plus its own reflexes. The
+    # placeholder is deleted with the alias, as for acm: a spec file must stay
+    # reachable by its own code.
+    "abv": "ar-BH-x-baharna",  # Bahārna Arabic (B dialects of Bahrain)
     "aec": "ar-EG-x-saidi",   # Saʿīdi (Upper Egyptian) Arabic
     "avl": "ar-EG-x-bedawi",  # Eastern Egyptian Bedawi Arabic
     "adf": "ar-OM-x-dhofari", # Dhofari Arabic
@@ -226,7 +231,7 @@ except ImportError:
 
 
 @lru_cache(maxsize=None)
-def _resolve_code(code: str) -> str:
+def _resolve_code(code: str, *, allow_nearest: bool = True) -> str:
     """Normalise common aliases to canonical BCP-47 codes.
 
     Resolution order:
@@ -269,12 +274,25 @@ def _resolve_code(code: str) -> str:
         return _BARE_DEFAULTS[code]
     if code in _REGION_DEFAULTS:
         return _REGION_DEFAULTS[code]
+    if not allow_nearest:
+        return code
     match = closest_lang(code, available)
     if match:
         _LOG.debug("resolved language code %r to nearest registered %r",
                    code, match)
         return match
     return code
+
+
+def resolves_exactly(code: str) -> bool:
+    """True when *code* names a spec without nearest-language guessing.
+
+    Alias tables, case folding, BCP-47 standardization and the curated bare-tag
+    defaults all name a spec deliberately; ``closest_lang`` guesses. This
+    separates the two, so a caller can tell "this code is registered" from
+    "something vaguely like it is".
+    """
+    return _resolve_code(code, allow_nearest=False) in available_json_codes()
 
 
 def resolve(code: str) -> str:
@@ -289,17 +307,30 @@ def resolve(code: str) -> str:
     return _resolve_code(code)
 
 
-def get(code: str) -> LanguageSpec:
+def get(code: str, strict: bool = False) -> LanguageSpec:
     """Return the :class:`LanguageSpec` for *code*, loading lazily.
 
     Args:
         code: BCP-47 language code (e.g. ``'en'``, ``'pt-BR'``) or
               ISO 639-3 three-letter code (e.g. ``'eng'``, ``'por'``).
+        strict: refuse nearest-language guessing. Aliases, case folding,
+            BCP-47 standardization and the curated bare-tag defaults still
+            apply — those name a spec deliberately. What is refused is
+            ``closest_lang``, which answers an unregistered code with the
+            nearest thing it can find.
+
+    The default is the guess, because callers depend on it. It is worth knowing
+    what it costs: before ``ar-BH-x-baharna`` had a spec, ``get`` answered it with
+    a 261-grapheme table and plausible Arabic output — the Bahraini Sunni one —
+    with nothing in the result saying a substitution had happened. A reviewer
+    reading a baseline that way got a complete, confident column from the wrong
+    spec. ``strict=True`` is for any caller that would rather be told.
 
     Raises:
-        KeyError: If the language is not registered.
+        KeyError: If the language is not registered, or — under *strict* — if it
+            resolves only by nearest-language guessing.
     """
-    code = _resolve_code(code)
+    code = _resolve_code(code, allow_nearest=not strict)
     if code not in _cache:
         _cache[code] = load_json_spec(code)
     return _cache[code]
@@ -370,20 +401,38 @@ def _discover_syllabifiers() -> Dict[str, "SyllabifierPlugin"]:
 
     When several plugins claim the same language code, the one with the
     highest :attr:`SyllabifierPlugin.priority` wins.
+
+    A bundled plugin's own optional third-party dependency being absent is the
+    normal case for an ordinary install (see :mod:`orthography2ipa.syllabifiers`)
+    — it is logged at DEBUG, naming the extra that would enable it. Anything
+    else that goes wrong loading or instantiating a plugin is a real problem
+    and is logged at WARNING.
     """
     plugins: Dict[str, "SyllabifierPlugin"] = {}
     eps = entry_points(group="orthography2ipa.syllabify")
     for ep in eps:
         try:
-            instance = ep.load()()
-            for code in instance.language_codes:
-                incumbent = plugins.get(code)
-                if incumbent is None or instance.priority > incumbent.priority:
-                    plugins[code] = instance
+            cls = ep.load()
         except Exception as exc:
             _LOG.warning(
                 "failed to load syllabifier plugin %r: %s", ep.name, exc)
             continue
+        try:
+            instance = cls()
+        except ModuleNotFoundError as exc:
+            _LOG.debug(
+                "syllabifier plugin %r is disabled: its optional dependency is "
+                "not installed (%s). Install the matching extra to enable it.",
+                ep.name, exc)
+            continue
+        except Exception as exc:
+            _LOG.warning(
+                "failed to load syllabifier plugin %r: %s", ep.name, exc)
+            continue
+        for code in instance.language_codes:
+            incumbent = plugins.get(code)
+            if incumbent is None or instance.priority > incumbent.priority:
+                plugins[code] = instance
     return plugins
 
 

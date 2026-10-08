@@ -38,6 +38,7 @@ One line per language: the best system on its primary gold, and where o2i lands.
 - **fr (French)** — o2i #1 (beats espeak rules-only)
 - **ga (Irish)** — o2i #1 (beats espeak rules-only)
 - **gl (Galician)** — o2i #1 (beats pycotovia)
+- **gur** — o2i #1 (beats ghana-g2p)
 - **ha** — o2i #1 (beats ghana-g2p)
 - **hi (Hindi)** — o2i #1 (beats espeak rules-only)
 - **hts (Hadza)** — o2i #1 (beats africa-g2p)
@@ -252,6 +253,12 @@ Turning the diacritizer off collapses arbtok onto o2i exactly (ipadict 0.3073, t
 | vox_communis | 47515 | 0.0643 | same-source | 0.0883 | o2i |
 | wikipron | 8091 | 0.0804 | n/a | 0.0883 | o2i |
 
+### gur
+
+| Dataset | N | o2i | africa-g2p | ghana-g2p | Winner |
+|---|---|---|---|---|---|
+| wikipron | 111 | 0.2968 | 0.4903 | 0.3297 | o2i |
+
 ### ha
 
 | Dataset | N | o2i | epitran | africa-g2p | ghana-g2p | Winner |
@@ -392,7 +399,7 @@ Turning the diacritizer off collapses arbtok onto o2i exactly (ipadict 0.3073, t
 
 ## How to read this
 
-**Systems compared.** o2i vs **espeak-ng**, **espeak-ng rules-only**, **epitran**, **gruut**, **gruut rules-only**, **pycotovia** (Galician & Spanish), **ahotts-g2p** (Basque & Spanish), and **africa-g2p** (10 African-language rows) — seven systems, two of which (espeak-ng, gruut) also get a rules-only column. Each system covers a different subset of languages. A missing mapping, or a system not installed in the generating environment, shows as `n/a` — never skipped, never faked.
+**Systems compared.** o2i vs **espeak-ng**, **espeak-ng rules-only**, **epitran**, **gruut**, **gruut rules-only**, **pycotovia** (Galician & Spanish), **ahotts-g2p** (Basque & Spanish), **africa-g2p** (16 rows) and **ghana-g2p** (5 rows, africa-g2p's tables plus a donor tier and a patch table) — eight systems, two of which (espeak-ng, gruut) also get a rules-only column. Each count is the number of BOARD ROWS on which that system produced a score, not a number of languages: a language with two golds contributes two rows. Each system covers a different subset of languages. A missing mapping, or a system not installed in the generating environment, shows as `n/a` — never skipped, never faked.
 
 **Rules-only columns, and why only two engines have one.** A "rules-only" column runs the SAME engine with its bundled dictionary/lexicon disabled, so it can only fall back on its own letter-to-sound rules or g2p model — the fair comparison against o2i, which by hard rule ships no word-exception list of its own. Disposition per engine:
 
@@ -624,7 +631,8 @@ Not every gold language has a mapping for every competitor system: espeak-ng, ep
 
 ### Staleness
 
-The `o2i PER` column here matches [`benchmarks/results.json`](../benchmarks/results.json)'s `per` for most shared language/dataset pairs, EXCEPT the 6 listed below — those `benchmarks/results.json` rows are stale (a prior PR changed the engine but did not regenerate every affected row there; see e.g. PR #802's `ca`/`4catac`-only regeneration). The numbers in THIS table reflect the current engine via a live run; `benchmarks/results.json` needs a matching regeneration for: `es`/`wikipron` (here 0.0797, results.json 0.0593); `nl`/`vox_communis` (here 0.2925, results.json 0.2706); `sv`/`ipa_childes` (here 0.3449, results.json 0.3476); `sv`/`ipadict` (here 0.2583, results.json 0.2427); `sv`/`vox_communis` (here 0.3428, results.json 0.3717); `sv`/`wikipron` (here 0.2317, results.json 0.2407). 4 more row(s) differ for a DIFFERENT reason — not staleness: this board's `sample_n` config scores a fixed-seed SUBSET of the gold, while `benchmarks/results.json` scores the FULL gold. Same seed, different sample size, so a different PER is expected and regenerating either side will not reconcile them: `ar`/`ipadict` (here 0.3073 on 2319 sampled words, results.json 0.3774 on the full 857160); `ar`/`wikipron` (here 0.2514 on 2735 sampled words, results.json 0.3139 on the full 14268); `ar`/`wikipron_ar_diacritized` (here 0.1788 on 2717 sampled words, results.json 0.1721 on the full 14240); `pt-PT`/`wikipron` (here 0.1346 on 2272 sampled words, results.json 0.0899 on the full 56978).
+<!-- staleness: derived at render time from benchmarks/comparison.json against benchmarks/results.json; not committed -->
+Whether the `o2i PER` column here still matches [`benchmarks/results.json`](../benchmarks/results.json) is not written into this file, because that list changes whenever any board row moves and two open pull requests would rewrite the same line. Run `python scripts/compare_systems.py --staleness` for the current list; the published site carries the same note as `comparison_staleness.md`.
 
 **espeak-rules-only coverage.** `espeak-rules-only` (the `espeak_rules_per` field) is a permanent column on this board: espeak-ng compiled from its own letter-to-sound rules with every per-language word-exception list (`_list`/`_listx`/`_extra`) emptied first — see `scripts/build_espeak_rules_only.sh`. Every row with a stock `espeak` number also carries an `espeak-rules-only` one in this run.
 

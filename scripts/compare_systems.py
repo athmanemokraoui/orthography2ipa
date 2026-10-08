@@ -506,6 +506,11 @@ LANGS: Dict[str, dict] = {
     "ha": {"dataset": ("wikipron", "ha"), "espeak": None,
            "epitran": "hau-Latn", "gruut": None,
            "africa_g2p": "hau-nigeria", "ghana_g2p": "hau"},
+    # gur: Farefare. espeak-ng, epitran and gruut have no Farefare; both
+    # africa-g2p and ghana-g2p name it "gur", the same code o2i uses.
+    "gur": {"dataset": ("wikipron", "gur"), "espeak": None,
+            "epitran": None, "gruut": None,
+            "africa_g2p": "gur", "ghana_g2p": "gur"},
     "hts": {"dataset": ("wikipron", "hts"), "espeak": None,
             "epitran": None, "gruut": None},
     "kab": {"dataset": ("vox_communis", "kab"), "espeak": None,
@@ -2192,6 +2197,11 @@ _GRUUT_SAME_SOURCE_DATASETS = frozenset({"cmudict", "ipadict"})
 #: self-agreement, not correctness.
 _O2I_SAME_SOURCE_DATASETS = frozenset({
     "arabic_tts", "portuguese_tts", "gold20_arabic",
+    # spain_romance_tts is pinned to o2i's own output by its authoring tool
+    # AND by its CI gate, which asserts transcribe(sentence, lect) == ipa for
+    # every row (scripts/spain_romance_tts_gold.py validate). Scoring o2i
+    # against it is circular by construction, not merely by lineage.
+    "spain_romance_tts",
     # barranquenho_dict joins per this docstring's own instruction above:
     # load_barranquenho_dict's docstring documents its IPA column as itself
     # o2i-aligned, so scoring o2i (or g2p_barranquenho, which is built
@@ -3996,6 +4006,34 @@ def _fair_comparison_2x2_lines(rows: List[dict]) -> List[str]:
     return lines
 
 
+#: The committed docs/comparison.md carries this marker and the pointer
+#: sentence after it, never the derived paragraph itself. The paragraph
+#: lists every (lang, dataset) whose ``o2i_per`` here differs from the
+#: committed ``benchmarks/results.json`` row, so it changes whenever ANY
+#: board row on the comparison board moves, and two open PRs that each
+#: moved one row both rewrote the same line and conflicted (#1660 against
+#: #1661, then #1675 against #1660). It is now derived at render time —
+#: ``python scripts/compare_systems.py --staleness`` prints it, and the
+#: pages workflow publishes it beside the explorer — and the tripwire
+#: checks the derived note, not a committed copy.
+STALENESS_MARKER = "<!-- staleness: derived at render time from benchmarks/comparison.json against benchmarks/results.json; not committed -->"
+STALENESS_POINTER = (
+    "Whether the `o2i PER` column here still matches "
+    "[`benchmarks/results.json`](../benchmarks/results.json) is not "
+    "written into this file, because that list changes whenever any board "
+    "row moves and two open pull requests would rewrite the same line. "
+    "Run `python scripts/compare_systems.py --staleness` for the current "
+    "list; the published site carries the same note as "
+    "`comparison_staleness.md`."
+)
+
+
+def render_staleness_note() -> str:
+    """The derived staleness paragraph for the COMMITTED comparison rows,
+    computed now against the committed ``benchmarks/results.json``."""
+    return _scoreboard_staleness_note(read_comparison_rows())
+
+
 def _details_block_lines(rows: List[dict], scoreboard_note: str,
                           espeak_rules_note: str,
                           gold_comparable: List[dict], gold_wins: int,
@@ -4076,7 +4114,8 @@ def _details_block_lines(rows: List[dict], scoreboard_note: str,
         "",
         "### Staleness",
         "",
-        scoreboard_note,
+        STALENESS_MARKER,
+        STALENESS_POINTER,
         "",
         "**espeak-rules-only coverage.** `espeak-rules-only` (the "
         "`espeak_rules_per` field) is a permanent column on this board: "
@@ -4136,21 +4175,48 @@ def _details_block_lines(rows: List[dict], scoreboard_note: str,
     return lines
 
 
+#: Sentinel: derive the Catalan voice map from the rows being written.
+_VOICES_FROM_ROWS = object()
+
+
+def catalan_voices_from_rows(rows: List[dict]) -> Dict[str, Optional[str]]:
+    """The espeak voice each Catalan dialect row was scored with, read from
+    the rows' own ``espeak_voice`` field — the record made at leg-run time.
+
+    This is what the "Catalan dialects vs espeak (BSC)" section must render
+    from. Before this function the section was rendered from
+    :data:`CATALAN_DIALECT_VOICES`, which probes the espeak-ng install of
+    the machine running the WRITER: a docs re-render on a box with no
+    espeak-ng flipped the paragraph to "not found" and the voice column to
+    ``n/a`` while the rows themselves still said ``ca-ba``, ``ca-nw``,
+    ``ca-va`` (seen while re-rendering the staleness paragraph in #1660,
+    #1661, #1675 and #1688, where the writer had to be handed the committed
+    map by hand). A row with no ``espeak_voice`` field renders as ``None``
+    (n/a): that is the truth about that row, not about this machine.
+    """
+    return {tag: next((r.get("espeak_voice") for r in rows
+                       if r["lang"] == tag and r["dataset"] == "4catac"), None)
+            for tag in _CATALAN_DIALECT_LABELS}
+
+
 def write_comparison(
         rows: List[dict],
-        catalan_voices: Optional[Dict[str, Optional[str]]] = CATALAN_DIALECT_VOICES,
+        catalan_voices=_VOICES_FROM_ROWS,
 ) -> None:
     """Write the comparison board (JSON) and the rendered document (Markdown).
 
-    *catalan_voices* defaults to the resolved :data:`CATALAN_DIALECT_VOICES`
-    rather than to ``None`` because the document is rewritten WHOLE on every
-    call, including a single-language ``--lang`` refresh that rescored none of
-    the Catalan rows. With a ``None`` default, any caller that simply did not
-    think about Catalan silently DELETED the committed "Catalan dialects vs
-    espeak (BSC)" section from the published document — a partial rerun must
-    never be able to drop a section it did not touch. Pass ``None`` explicitly
-    to suppress the section on purpose.
+    *catalan_voices* defaults to the map read from *rows* by
+    :func:`catalan_voices_from_rows`, so the section is rendered from what
+    the legs recorded and a re-render on any machine reproduces the
+    committed text. It does not default to ``None`` because the document
+    is rewritten WHOLE on every call, including a single-language ``--lang``
+    refresh that rescored none of the Catalan rows: with a ``None`` default
+    any caller that did not think about Catalan silently DELETED the
+    committed "Catalan dialects vs espeak (BSC)" section. Pass ``None``
+    explicitly to suppress the section on purpose, or a map to override.
     """
+    if catalan_voices is _VOICES_FROM_ROWS:
+        catalan_voices = catalan_voices_from_rows(rows)
     os.makedirs(os.path.dirname(COMPARISON_JSON), exist_ok=True)
     with open(COMPARISON_JSON, "w", encoding="utf-8") as fh:
         json.dump(rows, fh, indent=2, ensure_ascii=False)
@@ -4184,15 +4250,26 @@ def write_comparison(
     lines.extend(_leaderboard_summary(rows))
     lines.extend(_o2i_family_section(rows))
     lines.extend(_render_language_tables(rows))
+    # The two African-G2P row counts are COUNTED from the rows being
+    # written, never written by hand. The hand-written "10 African-language
+    # rows" stood while the real africa-g2p count grew to 15 and while
+    # ghana-g2p was added as an eighth system and went unnamed (T-2673).
+    _africa_rows = sum(1 for r in rows if r.get("africa_g2p_per") is not None)
+    _ghana_rows = sum(1 for r in rows if r.get("ghana_g2p_per") is not None)
     lines.extend([
         "## How to read this",
         "",
         "**Systems compared.** o2i vs **espeak-ng**, **espeak-ng "
         "rules-only**, **epitran**, **gruut**, **gruut rules-only**, "
         "**pycotovia** (Galician & Spanish), **ahotts-g2p** "
-        "(Basque & Spanish), and "
-        "**africa-g2p** (10 African-language rows) — seven systems, two "
+        "(Basque & Spanish), "
+        f"**africa-g2p** ({_africa_rows} rows) and **ghana-g2p** "
+        f"({_ghana_rows} rows, africa-g2p's tables plus a donor tier and a "
+        "patch table) — eight systems, two "
         "of which (espeak-ng, gruut) also get a rules-only column. Each "
+        "count is the number of BOARD ROWS on which that system produced a "
+        "score, not a number of languages: a language with two golds "
+        "contributes two rows. Each "
         "system covers a different subset of languages. A missing "
         "mapping, or a system not installed in the generating "
         "environment, shows as `n/a` — never skipped, never faked.",
@@ -4380,10 +4457,19 @@ def main() -> None:
                          "documented, visibly-flagged exception)")
     ap.add_argument("--list", action="store_true",
                     help="List languages this harness can compare")
+    ap.add_argument("--staleness", action="store_true",
+                    help="Print the derived staleness paragraph (committed "
+                         "comparison.json against committed results.json) "
+                         "and exit; this is what docs/comparison.md no "
+                         "longer carries")
     ap.add_argument("--scoreboard", action="store_true",
                     help="Run every mapped language and write "
                          "docs/comparison.md + benchmarks/comparison.json")
     args = ap.parse_args()
+
+    if args.staleness:
+        print(render_staleness_note())
+        return
 
     if args.scoreboard:
         # --lang narrows the run to one language and MERGES the result into
@@ -4398,7 +4484,7 @@ def main() -> None:
             print(f"merging {len(rows)} rescored rows into the committed "
                   f"comparison board", file=sys.stderr)
             rows = merge_comparison_rows(read_comparison_rows(), rows)
-        write_comparison(rows, catalan_voices=CATALAN_DIALECT_VOICES)
+        write_comparison(rows)
         print(f"wrote {len(rows)} rows to "
               f"{os.path.relpath(COMPARISON_MD, REPO_ROOT)} and "
               f"{os.path.relpath(COMPARISON_JSON, REPO_ROOT)}")

@@ -28,6 +28,7 @@ time rather than holding function objects.
 """
 import json
 import os
+import subprocess
 import sys
 
 import pytest
@@ -2542,6 +2543,34 @@ class TestO2iSameSourceExclusion:
         assert cs._cell(row, "o2i") == "0.0000"
 
 
+class TestO2iSameSourceGoldCannotGate:
+    """A dataset in ``_O2I_SAME_SOURCE_DATASETS`` is gold that o2i's own
+    knowledge (or o2i's own output) went into, so its PER measures
+    self-agreement. Such a row must never qualify or block a language: the
+    ``spain_romance_tts`` provenance note in scripts/benchmark.py states the
+    rule as "a gold pinned to the system under test must never gate
+    anything". The same-source FLAG only changes how the cell renders; it
+    does not stop `can_gate_promotion` from returning True. This test binds
+    the two, so a tier edit that makes a same-source dataset gating fails
+    here.
+    """
+
+    def test_every_same_source_dataset_has_a_non_gating_tier(self):
+        for dataset in sorted(cs._O2I_SAME_SOURCE_DATASETS):
+            tier = cs.benchmark.PROVENANCE[dataset]
+            assert not cs.benchmark.can_gate_promotion(tier), (
+                f"{dataset} is same-source with o2i but its tier {tier!r} "
+                f"can gate a promotion"
+            )
+
+    def test_the_check_can_fail(self):
+        """The assertion above is only worth something if some tier in the
+        ladder DOES gate. ``machine-generated`` is the cutoff tier and gates,
+        so a same-source dataset moved to it would fail the test above."""
+        assert cs.benchmark.can_gate_promotion(
+            cs.benchmark.GATING_CUTOFF_TIER)
+
+
 class TestRobustnessSection:
     """_robustness_section is consumed by write_comparison but was
     previously untested — pin the win/loss split, the verdict labels, the
@@ -2614,37 +2643,130 @@ class TestRobustnessSection:
         assert "**`uu`**" not in text
 
 
-class TestCommittedDocsMatchesFreshStalenessNote:
-    """Mechanical guard against exactly the bug this class is named for:
-    docs/comparison.md's scoreboard-staleness paragraph was generated
-    BEFORE a rebase moved benchmarks/results.json out from under it, so
-    the committed prose named the wrong stale rows (14 rows, wrong set)
-    instead of the true count against the tree it actually shipped with
-    (21 rows). A regeneration that runs write_comparison() before its
-    final rebase/JSON update is exactly what this would have caught: the
-    committed doc's note must equal _scoreboard_staleness_note() computed
-    fresh, right now, from the COMMITTED comparison.json against the
-    COMMITTED results.json — if they differ, the doc was generated
-    against a different tree than the one that got committed."""
+class TestCatalanVoicesRenderFromTheRecord:
+    """The "Catalan dialects vs espeak (BSC)" section used to be rendered
+    from the espeak-ng install of the machine running the WRITER, so a docs
+    re-render on a box with no espeak-ng flipped its paragraph to "not
+    found" and the voice column to n/a while the rows still said ca-ba,
+    ca-nw, ca-va. It is now rendered from the rows' own ``espeak_voice``
+    field, the record made at leg-run time."""
 
-    def test_committed_staleness_note_matches_fresh_computation(self):
-        with open(cs.COMPARISON_JSON, encoding="utf-8") as fh:
-            committed_rows = json.load(fh)
+    def test_voice_map_is_read_from_the_rows(self):
+        rows = cs.read_comparison_rows()
+        voices = cs.catalan_voices_from_rows(rows)
+        assert set(voices) == set(cs._CATALAN_DIALECT_LABELS)
+        for tag, voice in voices.items():
+            row = next(r for r in rows if r["lang"] == tag and r["dataset"] == "4catac")
+            assert voice == row.get("espeak_voice")
+
+    _NO_ESPEAK_CHILD = r'''
+import os, shutil, sys
+sys.path.insert(0, {scripts!r})
+import compare_systems as cs
+
+# The child must really be a box with no espeak-ng, or this measures nothing.
+assert shutil.which("espeak-ng") is None, "espeak-ng is still on PATH"
+assert set(cs.CATALAN_DIALECT_VOICES.values()) == {{None}}, cs.CATALAN_DIALECT_VOICES
+
+rows = cs.read_comparison_rows()
+cs.COMPARISON_MD = os.path.join({out!r}, "comparison.md")
+cs.COMPARISON_JSON = os.path.join({out!r}, "comparison.json")
+cs.write_comparison(rows)
+'''
+
+    def test_rerender_on_a_box_without_espeak_is_a_noop(self, tmp_path):
+        # A REAL box with no espeak-ng: a fresh interpreter with espeak-ng
+        # off PATH, so the module-level probe runs empty at import time.
+        # Monkeypatching the module attribute in this process cannot do it:
+        # the pre-fix writer bound CATALAN_DIALECT_VOICES as a DEFAULT
+        # ARGUMENT at definition time, so a later patch of the module name
+        # never reaches it and the test result follows the espeak-ng install
+        # of whatever machine runs the suite.
+        out = tmp_path / "out"
+        out.mkdir()
+        scripts = os.path.dirname(os.path.abspath(cs.__file__))
+        script = tmp_path / "rerender.py"
+        script.write_text(self._NO_ESPEAK_CHILD.format(
+            scripts=scripts, out=str(out)), encoding="utf-8")
+
+        empty_bin = tmp_path / "bin"
+        empty_bin.mkdir()
+        env = dict(os.environ, PATH=str(empty_bin))
+        proc = subprocess.run([sys.executable, str(script)],
+                              capture_output=True, text=True, env=env,
+                              timeout=300)
+        assert proc.returncode == 0, proc.stderr
+
+        with open(cs.COMPARISON_MD, encoding="utf-8") as fh:
+            committed = fh.read()
+        rendered = (out / "comparison.md").read_text(encoding="utf-8")
+        i, j = rendered.index("## Catalan dialects"), committed.index("## Catalan dialects")
+        assert rendered[i:i + 1500] == committed[j:j + 1500]
+        assert "were **not** found" not in rendered
+
+    def test_a_row_with_no_recorded_voice_renders_na(self, tmp_path, monkeypatch):
+        def row(lang, voice):
+            r = {"lang": lang, "dataset": "4catac", "n": 2, "o2i_per": 0.1,
+                 "o2i_n": 2, "espeak_per": 0.2, "espeak_n": 2,
+                 "epitran_per": None, "epitran_n": 0, "gruut_per": None,
+                 "gruut_n": 0, "provenance_tier": "expert-human",
+                 "harness_version": "1.0", "limit": 10}
+            if voice is not None:
+                r["espeak_voice"] = voice
+            return r
+        rows = [row("ca", "ca"), row("ca-x-balear", "ca-ba"),
+                row("ca-x-valencia", None), row("ca-x-occidental", "ca")]
+        for r in rows:
+            monkeypatch.setitem(cs.LANGS, r["lang"], {"dataset": ("4catac", r["lang"])})
+        md_path = tmp_path / "comparison.md"
+        monkeypatch.setattr(cs, "COMPARISON_MD", str(md_path))
+        monkeypatch.setattr(cs, "COMPARISON_JSON", str(tmp_path / "comparison.json"))
+        cs.write_comparison(rows)
+        text = md_path.read_text(encoding="utf-8")
+        assert "| balear | ca-x-balear | ca-ba |" in text
+        assert "| valencian | ca-x-valencia | n/a |" in text
+        assert "| occidental (nord-occidental) | ca-x-occidental | ca (fallback, no dialect voice found) |" in text
+        assert "were **not** found" in text
+
+
+class TestStalenessParagraphIsDerivedNotCommitted:
+    """The staleness paragraph used to be committed inside docs/comparison.md
+    and checked against a fresh computation. That check was right (it caught
+    a doc regenerated before a rebase, twice), but the paragraph changes
+    whenever ANY comparison-board row moves in benchmarks/results.json, so
+    two open PRs that each moved one row rewrote the same line and
+    conflicted in pairs (#1660 against #1661, then #1675 against #1660).
+
+    The committed doc now carries a marker and a pointer sentence, and the
+    paragraph is derived at render time (``compare_systems.py --staleness``,
+    published by the pages workflow). The tripwire moves with it: the
+    marker must be there, the derived text must not, and the derivation
+    must still produce a well-formed note from the committed JSON."""
+
+    def test_committed_doc_carries_the_marker_and_not_the_paragraph(self):
         with open(cs.COMPARISON_MD, encoding="utf-8") as fh:
             committed_docs = fh.read()
+        assert cs.STALENESS_MARKER in committed_docs
+        assert cs.STALENESS_POINTER in committed_docs
+        # The derived paragraph's own opening words, never committed again.
+        assert "EXCEPT the " not in committed_docs
+        assert "needs a matching regeneration for:" not in committed_docs
 
-        fresh_note = cs._scoreboard_staleness_note(committed_rows)
+    def test_the_derived_note_is_well_formed(self):
+        note = cs.render_staleness_note()
+        assert note.startswith("The `o2i PER` column here matches")
+        # Every comparison row that shares a key with the board is either
+        # listed as stale, listed as a sample-size difference, or matches;
+        # the note names the count it lists.
+        with open(cs.COMPARISON_JSON, encoding="utf-8") as fh:
+            rows = json.load(fh)
+        assert note == cs._scoreboard_staleness_note(rows)
 
-        assert fresh_note in committed_docs, (
-            "docs/comparison.md's scoreboard-staleness paragraph does not "
-            "match a fresh _scoreboard_staleness_note() computed from the "
-            "COMMITTED benchmarks/comparison.json against the COMMITTED "
-            "benchmarks/results.json — the doc was regenerated against a "
-            "different tree than what actually got committed (e.g. before "
-            "a later rebase changed results.json). Re-run "
-            "scripts/compare_systems.py's writer on the current tree "
-            "before committing.\n\nFresh note:\n" + fresh_note
-        )
+    def test_staleness_flag_prints_the_note(self, capsys, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["compare_systems.py", "--staleness"])
+        cs.main()
+        out = capsys.readouterr().out
+        assert out.strip() == cs.render_staleness_note().strip()
 
 
 class TestScoreboardStalenessNoteSampledVsGenuine:
@@ -3149,10 +3271,10 @@ class TestDetailsBlockPresence:
         # before it — data first, methodology after.
         assert text.index("### aa") < text.index("<details>")
 
-    def test_stale_note_still_names_the_row(self, tmp_path, monkeypatch):
-        # Regression guard: the honest per-row staleness naming
-        # (results.json vs a fresh live run) must still be reachable in
-        # the regenerated doc, just relocated into the details block.
+    def test_stale_note_is_derived_not_written(self, tmp_path, monkeypatch):
+        # The honest per-row staleness naming (results.json vs a fresh live
+        # run) is still reachable, through render_staleness_note() on the
+        # written comparison.json; the doc carries the marker in its place.
         rows = [
             {"lang": "aa", "dataset": "d", "n": 2, "o2i_per": 0.5},
         ]
@@ -3168,7 +3290,10 @@ class TestDetailsBlockPresence:
         monkeypatch.setattr(cs, "COMPARISON_JSON", str(json_path))
         cs.write_comparison(rows)
         text = md_path.read_text(encoding="utf-8")
-        assert note in text
+        assert note not in text
+        assert cs.STALENESS_MARKER in text
+        assert text.index("### Staleness") > text.index("<details>")
+        assert cs.render_staleness_note() == note
 
 
 class TestFairComparison2x2SameSourceRendering:
@@ -3936,3 +4061,122 @@ class TestO2iLexProvenanceNamesTheRunningTree:
         keys = cs.o2i_lex_lexicon_keys("en", {})
 
         assert keys.provenance["version"] == "9.9.9-tree"
+
+
+class TestSystemsComparedCountsAreCounted:
+    """The "Systems compared." sentence counts africa-g2p and ghana-g2p
+    BOARD ROWS from the rows being written.
+
+    It used to carry two hand-written claims. Both had gone stale on the
+    committed board before T-2673 noticed: it said africa-g2p covered "10
+    African-language rows" when the real count was 15, and it said "seven
+    systems" and never named ghana-g2p, which had had its own column since
+    #1585. A literal cannot be kept true by review, so these tests pin the
+    numbers to the rows.
+    """
+
+    @staticmethod
+    def _rows(africa: int, ghana: int):
+        """``africa`` rows scored by africa-g2p, ``ghana`` of them by
+        ghana-g2p too, plus one row scored by neither."""
+        rows = []
+        for i in range(africa):
+            rows.append({
+                "lang": f"l{i}", "dataset": "wikipron", "n": 2,
+                "o2i_per": 0.1, "o2i_n": 2,
+                "espeak_per": None, "espeak_n": 0,
+                "espeak_same_source": False,
+                "espeak_rules_per": None, "espeak_rules_n": 0,
+                "espeak_rules_same_source": False,
+                "epitran_per": None, "epitran_n": 0,
+                "gruut_per": None, "gruut_n": 0,
+                "africa_g2p_per": 0.2, "africa_g2p_n": 2,
+                "ghana_g2p_per": 0.3 if i < ghana else None,
+                "ghana_g2p_n": 2 if i < ghana else 0,
+                "provenance_tier": "crowd-scraped",
+                "harness_version": "1.0", "limit": 10,
+            })
+        rows.append({
+            "lang": "zz", "dataset": "wikipron", "n": 2,
+            "o2i_per": 0.1, "o2i_n": 2,
+            "espeak_per": None, "espeak_n": 0,
+            "espeak_same_source": False,
+            "espeak_rules_per": None, "espeak_rules_n": 0,
+            "espeak_rules_same_source": False,
+            "epitran_per": None, "epitran_n": 0,
+            "gruut_per": None, "gruut_n": 0,
+            "africa_g2p_per": None, "africa_g2p_n": 0,
+            "ghana_g2p_per": None, "ghana_g2p_n": 0,
+            "provenance_tier": "crowd-scraped",
+            "harness_version": "1.0", "limit": 10,
+        })
+        return rows
+
+    def _render(self, rows, tmp_path, monkeypatch):
+        for row in rows:
+            monkeypatch.setitem(cs.LANGS, row["lang"],
+                                {"dataset": ("wikipron", row["lang"])})
+        md_path = tmp_path / "comparison.md"
+        monkeypatch.setattr(cs, "COMPARISON_MD", str(md_path))
+        monkeypatch.setattr(cs, "COMPARISON_JSON",
+                            str(tmp_path / "comparison.json"))
+        cs.write_comparison(rows)
+        return md_path.read_text(encoding="utf-8")
+
+    def test_counts_follow_the_rows(self, tmp_path, monkeypatch):
+        text = self._render(self._rows(africa=4, ghana=2), tmp_path,
+                            monkeypatch)
+        assert "**africa-g2p** (4 rows)" in text
+        assert "**ghana-g2p** (2 rows" in text
+        # The row scored by neither is counted by neither.
+        assert "(5 rows)" not in text
+
+    def test_counts_move_when_a_row_is_added(self, tmp_path, monkeypatch):
+        before = self._render(self._rows(africa=4, ghana=2), tmp_path,
+                              monkeypatch)
+        after = self._render(self._rows(africa=5, ghana=3),
+                             tmp_path / "second", monkeypatch)
+        assert "**africa-g2p** (4 rows)" in before
+        assert "**africa-g2p** (5 rows)" in after
+        assert "**ghana-g2p** (3 rows" in after
+
+    def test_ghana_g2p_is_named_and_the_system_count_is_eight(
+            self, tmp_path, monkeypatch):
+        text = self._render(self._rows(africa=1, ghana=1), tmp_path,
+                            monkeypatch)
+        assert "**ghana-g2p**" in text
+        assert "eight systems" in text
+        assert "seven systems" not in text
+
+    def test_the_sentence_says_what_it_counts(self, tmp_path, monkeypatch):
+        text = self._render(self._rows(africa=1, ghana=1), tmp_path,
+                            monkeypatch)
+        assert "number of BOARD ROWS" in text
+        assert "not a number of languages" in text
+
+    def test_no_hand_written_count_is_left_in_the_writer(self):
+        import inspect
+        src = inspect.getsource(cs.write_comparison)
+        assert "African-language rows" not in src
+        assert "seven systems" not in src
+
+
+class TestGurIsRegistered:
+    """T-2673: Farefare has upstream WikiPron gold, and the row scores o2i,
+    africa-g2p and ghana-g2p on the same words. All three name it "gur"."""
+
+    def test_lang_row_names_both_african_engines(self):
+        cfg = cs.LANGS["gur"]
+        assert cfg["dataset"] == ("wikipron", "gur")
+        assert cfg["africa_g2p"] == "gur"
+        assert cfg["ghana_g2p"] == "gur"
+
+    def test_espeak_epitran_and_gruut_have_no_farefare(self):
+        cfg = cs.LANGS["gur"]
+        assert cfg["espeak"] is None
+        assert cfg["epitran"] is None
+        assert cfg["gruut"] is None
+
+    def test_wikipron_file_is_registered(self):
+        from scripts import benchmark
+        assert benchmark._WIKIPRON_FILES["gur"] == "gur_latn_broad.tsv"

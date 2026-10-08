@@ -261,14 +261,20 @@ class TestGatingFieldDerivedAndRendered:
         assert row["gating"] == can_gate_promotion(row["provenance"])
 
     def test_backfilled_results_json_gating_matches_provenance(self):
-        """Every one of the 644 committed rows carries a `gating` value that
-        agrees with `can_gate_promotion(row["provenance"])` — the backfill
-        must be a pure derivation, never a hand patch that can drift."""
+        """Every committed row carries a `gating` value that agrees with
+        `can_gate_promotion(row["provenance"])` — the backfill must be a pure
+        derivation, never a hand patch that can drift.
+
+        The row count is asserted as well, so that registering a dataset has
+        to state how many rows it adds. It was 644 before
+        ``spain_romance_tts`` was registered, and that set adds one row per
+        lect. It was 740 before the WikiPron Farefare file was registered
+        (T-2673), and that file adds exactly one row, ``gur``/``wikipron``."""
         path = os.path.join(
             os.path.dirname(__file__), "..", "benchmarks", "results.json")
         with open(path, encoding="utf-8") as fh:
             rows = json.load(fh)
-        assert len(rows) == 644
+        assert len(rows) == 741
         mismatched = [
             (r["lang"], r["dataset"]) for r in rows
             if r.get("gating") != can_gate_promotion(r["provenance"])
